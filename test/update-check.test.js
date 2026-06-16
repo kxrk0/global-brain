@@ -116,16 +116,16 @@ test('noticeFresh: within throttle → skips network, reads existing cache', () 
 const ESC = String.fromCharCode(0x1b);
 const BEL = String.fromCharCode(0x07);
 
-test('noticeFreshParts: bundles arrow message + allowlisted OSC 9 toast', () => {
+test('noticeFreshParts: bundles arrow message + allowlisted OSC 2 tab title', () => {
   clearCache();
   setLatest('9.9.9');
   const p = U.noticeFreshParts('0.4.0');
   assert.ok(p, 'expected parts');
   assert.ok(p.message.includes('0.4.0') && p.message.includes('9.9.9') && p.message.includes('→'),
     `inline message should be the arrow form: ${p.message}`);
-  assert.ok(p.terminalSequence.startsWith(ESC + ']9;'), 'must be an OSC 9 sequence');
+  assert.ok(p.terminalSequence.startsWith(ESC + ']2;'), 'must be an OSC 2 title sequence');
   assert.ok(p.terminalSequence.endsWith(BEL), 'OSC must terminate with BEL');
-  assert.ok(p.terminalSequence.includes('9.9.9'), 'toast should name the new version');
+  assert.ok(p.terminalSequence.includes('9.9.9'), 'title should name the new version');
 });
 
 test('noticeFreshParts: null when up to date', () => {
@@ -134,9 +134,9 @@ test('noticeFreshParts: null when up to date', () => {
   assert.strictEqual(U.noticeFreshParts('0.4.0'), null);
 });
 
-test('osc9: strips control chars so the payload cannot inject a 2nd sequence', () => {
+test('oscTitle: strips control chars so the payload cannot inject a 2nd sequence', () => {
   const evil = `hi${ESC}]777;pwn${BEL}\nthere`;
-  const seq = U.osc9(evil);
+  const seq = U.oscTitle(evil);
   // exactly one framing ESC and one framing BEL — payload controls neutralized
   assert.strictEqual(seq.split(ESC).length - 1, 1, 'only the framing ESC may remain');
   assert.strictEqual(seq.split(BEL).length - 1, 1, 'only the framing BEL may remain');
@@ -156,7 +156,7 @@ test('bin/sync.js hook: valid JSON, systemMessage + terminalSequence, exit 0', (
   assert.doesNotThrow(() => { out = JSON.parse(r.stdout); }, `hook stdout must be JSON: ${r.stdout}`);
   assert.strictEqual(out.continue, true);
   assert.ok(out.systemMessage && out.systemMessage.includes('9.9.9'), `expected notice in systemMessage: ${r.stdout}`);
-  assert.ok(out.terminalSequence && out.terminalSequence.startsWith(ESC + ']9;'), 'expected OSC 9 terminalSequence');
+  assert.ok(out.terminalSequence && out.terminalSequence.startsWith(ESC + ']2;'), 'expected OSC 2 terminalSequence');
 });
 
 // --- 9. hook stays fully silent when up to date -------------------------------
