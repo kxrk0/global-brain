@@ -177,38 +177,41 @@ const writeConfig = (o) => fs.writeFileSync(configFile, JSON.stringify(o));
 const runStatusline = () => spawnSync(process.execPath, [path.join(ROOT, 'bin', 'statusline.js')],
   { env: process.env, input: '{"model":{"id":"x"}}', encoding: 'utf8' });
 
-test('statusline: green segment when an update is cached, empty when current', () => {
-  const cur = require(path.join(ROOT, 'package.json')).version;
+test('statusline: green notice when an update is cached', () => {
   writeConfig({});
   writeCache({ checkedAt: 1, latest: '99.0.0' });
-  let r = runStatusline();
+  const r = runStatusline();
   assert.strictEqual(r.status, 0, `exit 0 (stderr: ${r.stderr})`);
   assert.ok(r.stdout.includes('99.0.0'), `should name newer version: ${JSON.stringify(r.stdout)}`);
-  assert.ok(r.stdout.includes('\x1b[32m'), 'segment must be green');
-
-  writeCache({ checkedAt: 1, latest: cur });
-  r = runStatusline();
-  assert.strictEqual(r.stdout, '', `silent when up to date: ${JSON.stringify(r.stdout)}`);
+  assert.ok(r.stdout.includes('\x1b[32m'), 'notice must be green');
 });
 
-test('statusline: composes a wrapped status line + right-aligns our segment', () => {
-  // Wrap must be a real executable (spawned without a shell so Windows backslash
-  // paths survive). A tiny marker script stands in for caveman; referenced by an
-  // unquoted path so the argv tokenizer (which strips quotes) handles it cleanly.
+const markerWrap = () => {
   const markerJs = path.join(BASE, 'wrap-marker.js');
-  fs.writeFileSync(markerJs, "process.stdout.write('WRAPPED_LINE');");
-  const wrap = `"${process.execPath}" "${markerJs}"`;
-  writeConfig({ statusLineWrap: wrap, statusLineWidth: 80 });
+  fs.writeFileSync(markerJs, "process.stdout.write('CAVEMAN_LINE');");
+  return `"${process.execPath}" "${markerJs}"`;
+};
+
+test('statusline: update pending → our notice takes the row, wrapped line hidden', () => {
+  writeConfig({ statusLineWrap: markerWrap() });
   writeCache({ checkedAt: 1, latest: '99.0.0' });
   const r = runStatusline();
   assert.strictEqual(r.status, 0);
-  assert.ok(r.stdout.includes('WRAPPED_LINE'), 'keeps the wrapped status line');
-  assert.ok(r.stdout.includes('99.0.0'), 'appends our update segment');
-  assert.ok(r.stdout.indexOf('WRAPPED_LINE') < r.stdout.indexOf('99.0.0'), 'wrapped first, segment after');
-  assert.ok(/WRAPPED_LINE {4,}/.test(r.stdout), 'segment is padded toward the right, not jammed against the wrap');
+  assert.ok(r.stdout.includes('99.0.0'), 'shows our update notice');
+  assert.ok(!r.stdout.includes('CAVEMAN_LINE'), 'wrapped status line is hidden while an update is pending');
 });
 
-test('statusline: no wrap configured → segment only, never errors', () => {
+test('statusline: up to date → wrapped status line passes through, no notice', () => {
+  const cur = require(path.join(ROOT, 'package.json')).version;
+  writeConfig({ statusLineWrap: markerWrap() });
+  writeCache({ checkedAt: 1, latest: cur });
+  const r = runStatusline();
+  assert.strictEqual(r.status, 0);
+  assert.ok(r.stdout.includes('CAVEMAN_LINE'), 'wrapped status line returns when up to date');
+  assert.ok(!r.stdout.includes('↑ global-brain'), 'no update notice when current');
+});
+
+test('statusline: no wrap configured → notice only, never errors', () => {
   writeConfig({});
   writeCache({ checkedAt: 1, latest: '99.0.0' });
   const r = runStatusline();
