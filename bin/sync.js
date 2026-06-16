@@ -13,10 +13,15 @@ const fs = require('fs');
 
 const REPORT = process.argv.includes('--report');
 
-function done(summary, systemMessage) {
+function done(summary, notice) {
   if (REPORT) { console.log(summary || 'sync complete'); process.exit(0); }
   const out = { continue: true, suppressOutput: true };
-  if (systemMessage) out.systemMessage = systemMessage;
+  if (notice && notice.message) {
+    out.systemMessage = notice.message;
+    // OSC 9 desktop notification — a visible toast on terminals that support it
+    // (Windows Terminal, iTerm2, …), since the inline systemMessage is fixed dim.
+    if (notice.terminalSequence) out.terminalSequence = notice.terminalSequence;
+  }
   process.stdout.write(JSON.stringify(out));
   process.exit(0);
 }
@@ -30,7 +35,7 @@ function updateNotice() {
   try {
     const U = require('../lib/update-check');
     const version = require('../package.json').version;
-    return U.noticeFresh(version);
+    return U.noticeFreshParts(version);
   } catch { return null; }
 }
 

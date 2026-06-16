@@ -112,8 +112,40 @@ test('noticeFresh: within throttle → skips network, reads existing cache', () 
   assert.ok(elapsed < 300, `should return promptly, took ${elapsed}ms`);
 });
 
-// --- 7. end-to-end: the real hook (bin/sync.js) emits systemMessage -----------
-test('bin/sync.js hook: emits valid JSON + systemMessage, exit 0, no crash', () => {
+// --- 7. message format + OSC 9 bundle -----------------------------------------
+const ESC = String.fromCharCode(0x1b);
+const BEL = String.fromCharCode(0x07);
+
+test('noticeFreshParts: bundles arrow message + allowlisted OSC 9 toast', () => {
+  clearCache();
+  setLatest('9.9.9');
+  const p = U.noticeFreshParts('0.4.0');
+  assert.ok(p, 'expected parts');
+  assert.ok(p.message.includes('0.4.0') && p.message.includes('9.9.9') && p.message.includes('→'),
+    `inline message should be the arrow form: ${p.message}`);
+  assert.ok(p.terminalSequence.startsWith(ESC + ']9;'), 'must be an OSC 9 sequence');
+  assert.ok(p.terminalSequence.endsWith(BEL), 'OSC must terminate with BEL');
+  assert.ok(p.terminalSequence.includes('9.9.9'), 'toast should name the new version');
+});
+
+test('noticeFreshParts: null when up to date', () => {
+  clearCache();
+  setLatest('0.4.0');
+  assert.strictEqual(U.noticeFreshParts('0.4.0'), null);
+});
+
+test('osc9: strips control chars so the payload cannot inject a 2nd sequence', () => {
+  const evil = `hi${ESC}]777;pwn${BEL}\nthere`;
+  const seq = U.osc9(evil);
+  // exactly one framing ESC and one framing BEL — payload controls neutralized
+  assert.strictEqual(seq.split(ESC).length - 1, 1, 'only the framing ESC may remain');
+  assert.strictEqual(seq.split(BEL).length - 1, 1, 'only the framing BEL may remain');
+  // The injected `]777;` is now inert text (no ESC to arm it); visible text kept.
+  assert.ok(seq.includes('pwn') && seq.includes('there'), 'visible text preserved');
+});
+
+// --- 8. end-to-end: the real hook (bin/sync.js) emits message + terminalSequence
+test('bin/sync.js hook: valid JSON, systemMessage + terminalSequence, exit 0', () => {
   clearCache();
   setLatest('9.9.9');
   const env = { ...process.env, GLOBAL_BRAIN_FRESH_THROTTLE_MS: '0', GLOBAL_BRAIN_FRESH_WAIT_MS: '4000' };
@@ -123,19 +155,20 @@ test('bin/sync.js hook: emits valid JSON + systemMessage, exit 0, no crash', () 
   let out;
   assert.doesNotThrow(() => { out = JSON.parse(r.stdout); }, `hook stdout must be JSON: ${r.stdout}`);
   assert.strictEqual(out.continue, true);
-  assert.ok(out.systemMessage && out.systemMessage.includes('9.9.9'), `expected update notice in systemMessage: ${r.stdout}`);
+  assert.ok(out.systemMessage && out.systemMessage.includes('9.9.9'), `expected notice in systemMessage: ${r.stdout}`);
+  assert.ok(out.terminalSequence && out.terminalSequence.startsWith(ESC + ']9;'), 'expected OSC 9 terminalSequence');
 });
 
-// --- 8. hook stays silent when up to date -------------------------------------
-test('bin/sync.js hook: no systemMessage when current is latest', () => {
+// --- 9. hook stays fully silent when up to date -------------------------------
+test('bin/sync.js hook: no message and no terminalSequence when current is latest', () => {
   clearCache();
-  // package.json version of the repo is the "current"; make registry match it
   setLatest(require(path.join(ROOT, 'package.json')).version);
   const env = { ...process.env, GLOBAL_BRAIN_FRESH_THROTTLE_MS: '0', GLOBAL_BRAIN_FRESH_WAIT_MS: '4000' };
   const r = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'sync.js')], { env, encoding: 'utf8' });
   assert.strictEqual(r.status, 0);
   const out = JSON.parse(r.stdout);
-  assert.ok(!out.systemMessage, `should be silent when up to date: ${r.stdout}`);
+  assert.ok(!out.systemMessage, `should be silent: ${r.stdout}`);
+  assert.ok(!out.terminalSequence, 'no toast when up to date');
 });
 
 // --- runner -------------------------------------------------------------------
