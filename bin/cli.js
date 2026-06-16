@@ -27,7 +27,7 @@ function usage() {
 Usage:
   global-brain init                 wire the brain into ~/.claude (hooks + skill + digest import)
   global-brain doctor               health-check the install (runtime, hooks, import, db)
-  global-brain sync [--report]      ingest transcripts + claude-mem, re-render the digest
+  global-brain sync [--report]      ingest Claude Code transcripts, re-render the digest
   global-brain stats                show entry counts per project/type
   global-brain query <terms>        search the brain   [--project P] [--limit N]
   global-brain remember <text>      add a fact         [--project P --type T --title .. --body .. --global --pin]

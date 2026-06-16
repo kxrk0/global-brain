@@ -23,6 +23,5 @@
   "excludeProjects": ["observer-sessions"],
   "pruneAfterDays": 120,
   "projectsDir": null,
-  "claudeMemDb": null,
   "digestPath": null
 }

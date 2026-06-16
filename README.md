@@ -2,11 +2,12 @@
 
 Cross-project persistent memory — a **global brain** for [Claude Code](https://claude.com/claude-code).
 
-A local SQLite brain that auto-ingests your Claude Code transcripts (and claude-mem
-observations, when present), then renders a small, bounded markdown digest that gets
-`@`-imported into **every** session via `CLAUDE.md`. Decisions, conventions, and hard-won
-gotchas from one project are available in all the others — without bloating context.
+A local SQLite brain that auto-ingests your Claude Code transcripts, then renders a
+small, bounded markdown digest that gets `@`-imported into **every** session via
+`CLAUDE.md`. Decisions, conventions, and hard-won gotchas from one project are
+available in all the others — without bloating context.
 
+- **Fully standalone.** Reads Claude Code's own transcripts directly — no plugins, no external services.
 - **Zero runtime dependencies.** Uses Node's built-in `node:sqlite`.
 - **Never blocks the harness.** The sync hook always exits 0.
 - **Bounded.** Token budget + per-project caps keep the digest small.
@@ -46,7 +47,7 @@ global-brain init
 ```text
 global-brain init                 wire the brain into ~/.claude
 global-brain doctor               health-check the install (runtime, hooks, import, db)
-global-brain sync [--report]      ingest transcripts + claude-mem, re-render the digest
+global-brain sync [--report]      ingest Claude Code transcripts, re-render the digest
 global-brain stats                entry counts per project/type
 global-brain query <terms>        search   [--project P] [--limit N]
 global-brain remember <text>      add a fact
