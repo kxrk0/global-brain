@@ -45,6 +45,9 @@ function ensureEngine() {
   fs.mkdirSync(BASE, { recursive: true });
   copyDir(path.join(PKG_ROOT, 'bin'), path.join(BASE, 'bin'));
   copyDir(path.join(PKG_ROOT, 'lib'), path.join(BASE, 'lib'));
+  // Stamp the version into the wired engine so `--version` / the update check
+  // resolve correctly when the copied bin is invoked directly (not via the npm bin).
+  try { fs.copyFileSync(path.join(PKG_ROOT, 'package.json'), path.join(BASE, 'package.json')); } catch {}
   // config.json: never clobber a user-tuned config
   const cfg = path.join(BASE, 'config.json');
   if (!fs.existsSync(cfg)) fs.copyFileSync(path.join(PKG_ROOT, 'config.json'), cfg);
