@@ -171,6 +171,44 @@ test('bin/sync.js hook: no message and no terminalSequence when current is lates
   assert.ok(!out.terminalSequence, 'no toast when up to date');
 });
 
+// --- 10. statusline wrapper ---------------------------------------------------
+const configFile = path.join(BASE, 'config.json');
+const writeConfig = (o) => fs.writeFileSync(configFile, JSON.stringify(o));
+const runStatusline = () => spawnSync(process.execPath, [path.join(ROOT, 'bin', 'statusline.js')],
+  { env: process.env, input: '{"model":{"id":"x"}}', encoding: 'utf8' });
+
+test('statusline: green segment when an update is cached, empty when current', () => {
+  const cur = require(path.join(ROOT, 'package.json')).version;
+  writeConfig({});
+  writeCache({ checkedAt: 1, latest: '99.0.0' });
+  let r = runStatusline();
+  assert.strictEqual(r.status, 0, `exit 0 (stderr: ${r.stderr})`);
+  assert.ok(r.stdout.includes('99.0.0'), `should name newer version: ${JSON.stringify(r.stdout)}`);
+  assert.ok(r.stdout.includes('\x1b[32m'), 'segment must be green');
+
+  writeCache({ checkedAt: 1, latest: cur });
+  r = runStatusline();
+  assert.strictEqual(r.stdout, '', `silent when up to date: ${JSON.stringify(r.stdout)}`);
+});
+
+test('statusline: composes a wrapped status line + appends our segment', () => {
+  writeConfig({ statusLineWrap: 'echo WRAPPED_LINE' });
+  writeCache({ checkedAt: 1, latest: '99.0.0' });
+  const r = runStatusline();
+  assert.strictEqual(r.status, 0);
+  assert.ok(r.stdout.includes('WRAPPED_LINE'), 'keeps the wrapped status line');
+  assert.ok(r.stdout.includes('99.0.0'), 'appends our update segment');
+  assert.ok(r.stdout.indexOf('WRAPPED_LINE') < r.stdout.indexOf('99.0.0'), 'wrapped first, segment after');
+});
+
+test('statusline: no wrap configured → segment only, never errors', () => {
+  writeConfig({});
+  writeCache({ checkedAt: 1, latest: '99.0.0' });
+  const r = runStatusline();
+  assert.strictEqual(r.status, 0, `exit 0 (stderr: ${r.stderr})`);
+  assert.ok(r.stdout.includes('99.0.0'));
+});
+
 // --- runner -------------------------------------------------------------------
 (async () => {
   setLatest('0.0.0');

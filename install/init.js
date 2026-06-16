@@ -20,6 +20,7 @@ const SETTINGS = path.join(CLAUDE_DIR, 'settings.json');
 const CLAUDE_MD = path.join(CLAUDE_DIR, 'CLAUDE.md');
 const DIGEST_IMPORT = '@global-brain.md';
 const SYNC_PATH = path.join(BASE, 'bin', 'sync.js');
+const STATUSLINE_PATH = path.join(BASE, 'bin', 'statusline.js');
 
 const log = (m) => console.log(`global-brain init: ${m}`);
 
@@ -92,6 +93,34 @@ function ensureHooks() {
   }
 }
 
+// Wire the status line so the green "update available" segment renders in the
+// colored bottom row. Idempotent and non-destructive: any pre-existing status line
+// (e.g. caveman) is preserved as `statusLineWrap` in config.json and re-run by our
+// wrapper, so we add a segment without replacing the user's status line. Our
+// wrapper needs no caveman — with no wrap it just prints its own segment.
+function ensureStatusLine() {
+  let settings = {};
+  if (fs.existsSync(SETTINGS)) {
+    try { settings = JSON.parse(fs.readFileSync(SETTINGS, 'utf8')); }
+    catch (e) { log(`WARNING: settings.json unparseable (${e.message}); skipping statusline`); return; }
+  }
+  const cur = settings.statusLine;
+  const isOurs = cur && typeof cur.command === 'string' &&
+    cur.command.includes('global-brain') && cur.command.includes('statusline.js');
+  if (isOurs) { log('statusline -> already wrapped'); return; }
+
+  const wrap = cur && cur.type === 'command' && typeof cur.command === 'string' ? cur.command : '';
+  const cfgPath = path.join(BASE, 'config.json');
+  let cfg = {};
+  try { cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8')); } catch {}
+  cfg.statusLineWrap = wrap;
+  writeAtomic(cfgPath, JSON.stringify(cfg, null, 2) + '\n');
+
+  settings.statusLine = { type: 'command', command: `node "${STATUSLINE_PATH}"` };
+  writeAtomic(SETTINGS, JSON.stringify(settings, null, 2) + '\n');
+  log(wrap ? 'statusline -> wrapped existing + update segment' : 'statusline -> update segment');
+}
+
 function ensureDigestImport() {
   let body = '';
   if (fs.existsSync(CLAUDE_MD)) body = fs.readFileSync(CLAUDE_MD, 'utf8');
@@ -111,6 +140,7 @@ function main() {
   ensureEngine();
   ensureSkill();
   ensureHooks();
+  ensureStatusLine();
   ensureDigestImport();
   initialSync();
   log('done. Restart Claude Code (or start a new session) to load the digest.');
