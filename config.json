@@ -1,0 +1,28 @@
+{
+  "tokenBudget": 6000,
+  "maxTotalEntries": 280,
+  "maxPerProject": 28,
+  "backfillMaxFilesPerRun": 80,
+  "minImportanceForDigest": 38,
+  "recencyHalfLifeDays": 21,
+  "recencyBoostMax": 22,
+  "typeWeights": {
+    "architecture": 92,
+    "constraint": 86,
+    "decision": 84,
+    "preference": 82,
+    "discovery": 72,
+    "commit": 66,
+    "bugfix": 62,
+    "fact": 55,
+    "refactor": 52,
+    "topic": 44,
+    "session": 40,
+    "note": 30
+  },
+  "excludeProjects": ["observer-sessions"],
+  "pruneAfterDays": 120,
+  "projectsDir": null,
+  "claudeMemDb": null,
+  "digestPath": null
+}

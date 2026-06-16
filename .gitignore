@@ -1,0 +1,22 @@
+# dependencies
+node_modules/
+
+# npm artifacts
+*.tgz
+.npmrc
+
+# runtime brain data — never commit personal memory
+brain.db
+brain.db-wal
+brain.db-shm
+global-brain.md
+sync.log
+*.log
+
+# env / secrets
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
