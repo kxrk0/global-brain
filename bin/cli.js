@@ -6,7 +6,7 @@
 const path = require('path');
 const { spawnSync } = require('child_process');
 const { checkSqlite } = require('../lib/preflight');
-const { checkForUpdate } = require('../lib/update-check');
+const U = require('../lib/update-check');
 
 const VERBS = {
   init: '../install/init.js',
@@ -73,12 +73,11 @@ const r = spawnSync(process.execPath, [script, ...rest], { stdio: 'inherit' });
 const status = r.status == null ? 1 : r.status;
 
 // doctor surfaces its own update line; skip the duplicate here.
-if (verb === 'doctor') process.exit(status);
-
-(async () => {
+if (verb !== 'doctor') {
   try {
-    const notice = await checkForUpdate(require('../package.json').version);
-    if (notice) console.error(`\n${notice}`);
+    U.refresh();
+    const n = U.notice(require('../package.json').version);
+    if (n) console.error(`\n↑ ${n}`);
   } catch {}
-  process.exit(status);
-})();
+}
+process.exit(status);

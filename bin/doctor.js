@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { checkSqlite } = require('../lib/preflight');
-const { checkForUpdate } = require('../lib/update-check');
+const U = require('../lib/update-check');
 
 const HOME = os.homedir();
 const CLAUDE_DIR = process.env.CLAUDE_CONFIG_DIR || path.join(HOME, '.claude');
@@ -85,12 +85,12 @@ console.log(hardFail
   ? `\n${R('Some checks failed.')} Run \`global-brain init\` to (re)wire, then restart Claude Code.\n`
   : `\n${G('All good.')} The brain is wired and healthy.\n`);
 
-(async () => {
-  try {
-    let version = 'unknown';
-    try { version = require('../package.json').version; } catch {}
-    const notice = await checkForUpdate(version);
-    if (notice) console.log(`  ${Y(notice)}\n`);
-  } catch {}
-  process.exit(hardFail ? 1 : 0);
-})();
+try {
+  let version = 'unknown';
+  try { version = require('../package.json').version; } catch {}
+  U.refresh();
+  const n = U.notice(version);
+  if (n) console.log(`  ${Y('↑ ' + n)}\n`);
+} catch {}
+
+process.exit(hardFail ? 1 : 0);

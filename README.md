@@ -52,8 +52,18 @@ are preserved):
 npm install -g @kxrk0/global-brain@latest
 ```
 
-The CLI checks the registry at most once every 15 minutes (only on manual use, never in
-the sync hook) and prints a one-line notice when a newer version is out. Disable it with
+### Update notice
+
+When a newer version is published, global-brain surfaces it automatically:
+
+- **At session start** — the SessionStart hook emits a `systemMessage`, so Claude Code shows
+  a one-line "update available" notice until you upgrade. (Claude Code controls the styling;
+  hooks can't set the color.)
+- **In the CLI** — `doctor`, `stats`, `sync`, etc. print the same notice.
+
+The actual registry lookup runs in a **detached background worker**, throttled to once every
+15 minutes — no foreground process ever blocks on the network, and the cache is read instantly.
+So a brand-new release shows up at most one session later. Disable the whole thing with
 `GLOBAL_BRAIN_NO_UPDATE_CHECK=1`.
 
 ## CLI
