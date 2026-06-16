@@ -108,13 +108,18 @@ function consoleWidth() {
 }
 
 function resolveWidth() {
+  // COLUMNS first: terminals (notably VS Code's integrated terminal) export the
+  // true visible width here, and it's authoritative. \\.\CONOUT$ under-reports in
+  // VS Code's ConPTY (returns the 120-col buffer, not the panel width), so it's
+  // only a fallback for terminals that don't set COLUMNS (e.g. plain Windows
+  // Terminal). An explicit config.statusLineWidth overrides everything.
+  const fromCfg = parseInt(loadConfig().statusLineWidth || '', 10);
+  if (Number.isFinite(fromCfg) && fromCfg > 20) return fromCfg;
+  const fromEnv = parseInt(process.env.COLUMNS || '', 10);
+  if (Number.isFinite(fromEnv) && fromEnv > 20) return fromEnv;
   if (process.stdout.isTTY && process.stdout.columns > 20) return process.stdout.columns;
   const real = consoleWidth();
   if (real) return real;
-  const fromEnv = parseInt(process.env.COLUMNS || '', 10);
-  if (Number.isFinite(fromEnv) && fromEnv > 20) return fromEnv;
-  const fromCfg = parseInt(loadConfig().statusLineWidth || '', 10);
-  if (Number.isFinite(fromCfg) && fromCfg > 20) return fromCfg;
   return DEFAULT_WIDTH;
 }
 
