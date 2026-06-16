@@ -21,14 +21,16 @@ function done(summary, systemMessage) {
   process.exit(0);
 }
 
-// Hook mode only: read the cached notice + kick a detached refresh for next time.
+// Hook mode only: do a single-fire fresh check. noticeFresh spawns the detached
+// network worker and briefly (CPU-free) waits for it to repopulate the cache, so a
+// newly published version surfaces on THIS session start — no foreground network,
+// no second-session lag.
 function updateNotice() {
   if (REPORT) return null;
   try {
     const U = require('../lib/update-check');
     const version = require('../package.json').version;
-    U.refresh();
-    return U.notice(version);
+    return U.noticeFresh(version);
   } catch { return null; }
 }
 
