@@ -23,6 +23,14 @@ const SYNC_PATH = path.join(BASE, 'bin', 'sync.js');
 
 const log = (m) => console.log(`global-brain init: ${m}`);
 
+// Write through a temp file + rename so a crash mid-write can never leave a
+// half-written settings.json — the rename is atomic on the same filesystem.
+function writeAtomic(file, data) {
+  const tmp = `${file}.gb-tmp`;
+  fs.writeFileSync(tmp, data);
+  fs.renameSync(tmp, file);
+}
+
 function copyDir(src, dst) {
   fs.mkdirSync(dst, { recursive: true });
   for (const e of fs.readdirSync(src, { withFileTypes: true })) {
@@ -74,7 +82,7 @@ function ensureHooks() {
     }
   }
   if (changed) {
-    fs.writeFileSync(SETTINGS, JSON.stringify(settings, null, 2) + '\n');
+    writeAtomic(SETTINGS, JSON.stringify(settings, null, 2) + '\n');
     log('hooks  -> SessionStart + Stop registered');
   } else {
     log('hooks  -> already registered');
@@ -86,7 +94,7 @@ function ensureDigestImport() {
   if (fs.existsSync(CLAUDE_MD)) body = fs.readFileSync(CLAUDE_MD, 'utf8');
   if (body.includes(DIGEST_IMPORT)) { log('import -> already present in CLAUDE.md'); return; }
   const block = `\n# Global Brain (cross-project memory)\n\n${DIGEST_IMPORT}\n`;
-  fs.writeFileSync(CLAUDE_MD, body + block);
+  writeAtomic(CLAUDE_MD, body + block);
   log('import -> @global-brain.md added to CLAUDE.md');
 }
 

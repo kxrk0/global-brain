@@ -45,6 +45,7 @@ global-brain init
 
 ```text
 global-brain init                 wire the brain into ~/.claude
+global-brain doctor               health-check the install (runtime, hooks, import, db)
 global-brain sync [--report]      ingest transcripts + claude-mem, re-render the digest
 global-brain stats                entry counts per project/type
 global-brain query <terms>        search   [--project P] [--limit N]
