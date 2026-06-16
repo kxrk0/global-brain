@@ -42,6 +42,20 @@ If you installed without auto-wiring (local install, CI), run it manually:
 global-brain init
 ```
 
+## Updating
+
+There is no background auto-update. Update with one command — the postinstall re-wires
+the engine in `~/.claude/global-brain` automatically (your `config.json` and `brain.db`
+are preserved):
+
+```bash
+npm install -g @kxrk0/global-brain@latest
+```
+
+The CLI checks the registry at most once every 15 minutes (only on manual use, never in
+the sync hook) and prints a one-line notice when a newer version is out. Disable it with
+`GLOBAL_BRAIN_NO_UPDATE_CHECK=1`.
+
 ## CLI
 
 ```text
