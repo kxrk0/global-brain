@@ -1,6 +1,6 @@
 {
   "name": "@kxrk0/global-brain",
-  "version": "0.4.9",
+  "version": "0.4.10",
   "description": "Cross-project persistent memory (\"global brain\") for Claude Code — a local SQLite brain that auto-ingests transcripts and renders a bounded digest loaded into every session.",
   "keywords": [
     "claude-code",

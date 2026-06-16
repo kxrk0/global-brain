@@ -191,14 +191,21 @@ test('statusline: green segment when an update is cached, empty when current', (
   assert.strictEqual(r.stdout, '', `silent when up to date: ${JSON.stringify(r.stdout)}`);
 });
 
-test('statusline: composes a wrapped status line + appends our segment', () => {
-  writeConfig({ statusLineWrap: 'echo WRAPPED_LINE' });
+test('statusline: composes a wrapped status line + right-aligns our segment', () => {
+  // Wrap must be a real executable (spawned without a shell so Windows backslash
+  // paths survive). A tiny marker script stands in for caveman; referenced by an
+  // unquoted path so the argv tokenizer (which strips quotes) handles it cleanly.
+  const markerJs = path.join(BASE, 'wrap-marker.js');
+  fs.writeFileSync(markerJs, "process.stdout.write('WRAPPED_LINE');");
+  const wrap = `"${process.execPath}" "${markerJs}"`;
+  writeConfig({ statusLineWrap: wrap, statusLineWidth: 80 });
   writeCache({ checkedAt: 1, latest: '99.0.0' });
   const r = runStatusline();
   assert.strictEqual(r.status, 0);
   assert.ok(r.stdout.includes('WRAPPED_LINE'), 'keeps the wrapped status line');
   assert.ok(r.stdout.includes('99.0.0'), 'appends our update segment');
   assert.ok(r.stdout.indexOf('WRAPPED_LINE') < r.stdout.indexOf('99.0.0'), 'wrapped first, segment after');
+  assert.ok(/WRAPPED_LINE {4,}/.test(r.stdout), 'segment is padded toward the right, not jammed against the wrap');
 });
 
 test('statusline: no wrap configured → segment only, never errors', () => {
