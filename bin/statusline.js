@@ -16,6 +16,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const tty = require('tty');
 const { spawnSync } = require('child_process');
 
 const GREEN = '\x1b[32m';
@@ -64,18 +65,16 @@ function parseCommand(s) {
   return out;
 }
 
-// Cache-only update segment. Green when a newer version was seen, else ''.
-function updateSegment() {
+// Cache-only: the newer version if one was seen, else null. No formatting.
+function latestUpdate() {
   try {
-    if (process.env.GLOBAL_BRAIN_NO_UPDATE_CHECK === '1') return '';
+    if (process.env.GLOBAL_BRAIN_NO_UPDATE_CHECK === '1') return null;
     const U = require('../lib/update-check');
     const cache = JSON.parse(fs.readFileSync(path.join(base(), 'update-check.json'), 'utf8'));
     const latest = cache && cache.latest;
-    if (latest && U._cmp(latest, currentVersion()) > 0) {
-      return `${GREEN}↑ global-brain ${latest}${RESET} ${DIM}· npm i -g @kxrk0/global-brain@latest${RESET}`;
-    }
+    if (latest && U._cmp(latest, currentVersion()) > 0) return latest;
   } catch {}
-  return '';
+  return null;
 }
 
 // Run the user's pre-existing status line (if any), feeding it the same stdin.
@@ -90,7 +89,28 @@ function wrappedOutput(stdin) {
   } catch { return ''; }
 }
 
+// Real terminal width — Claude Code doesn't pass it, so query the console directly
+// (works even though our stdout is a pipe). On Windows that's the \\.\CONOUT$
+// device; on POSIX, /dev/tty. Falls back to COLUMNS / config / a default. This is
+// what makes the layout responsive: it re-reads on every render, so resizing the
+// terminal re-flushes the segment to the new edge.
+function consoleWidth() {
+  const dev = process.platform === 'win32'
+    ? String.fromCharCode(92, 92, 46, 92) + 'CONOUT$' // \\.\CONOUT$
+    : '/dev/tty';
+  let fd;
+  try {
+    fd = fs.openSync(dev, process.platform === 'win32' ? 'r+' : 'r');
+    const cols = new tty.WriteStream(fd).columns;
+    if (Number.isFinite(cols) && cols > 20) return cols;
+  } catch {} finally { if (fd != null) { try { fs.closeSync(fd); } catch {} } }
+  return null;
+}
+
 function resolveWidth() {
+  if (process.stdout.isTTY && process.stdout.columns > 20) return process.stdout.columns;
+  const real = consoleWidth();
+  if (real) return real;
   const fromEnv = parseInt(process.env.COLUMNS || '', 10);
   if (Number.isFinite(fromEnv) && fromEnv > 20) return fromEnv;
   const fromCfg = parseInt(loadConfig().statusLineWidth || '', 10);
@@ -101,15 +121,27 @@ function resolveWidth() {
 {
   const stdin = readStdin();
   const left = wrappedOutput(stdin);
-  const seg = updateSegment();
+  const latest = latestUpdate();
 
-  if (!seg) { process.stdout.write(left); }
-  else if (!left) { process.stdout.write(seg); }
+  if (!latest) { process.stdout.write(left); }
   else {
-    // Flush the segment right: pad to the resolved width, but never exceed it
-    // (overflow would wrap to a second row). Minimum two-space gap as a fallback.
-    const width = resolveWidth();
-    const gap = width - visibleLen(left) - visibleLen(seg);
-    process.stdout.write(left + ' '.repeat(Math.max(2, gap)) + seg);
+    // Two verbosity tiers so the line stays responsive: prefer the full hint, fall
+    // back to the compact one when the terminal is too narrow to fit it flush-right.
+    const full = `${GREEN}↑ global-brain ${latest}${RESET} ${DIM}· npm i -g @kxrk0/global-brain@latest${RESET}`;
+    const compact = `${GREEN}↑ global-brain ${latest}${RESET}`;
+    // Leave a 1-col margin so the last glyph never lands on the wrap column.
+    const width = resolveWidth() - 1;
+    const lenLeft = visibleLen(left);
+
+    const placeRight = (seg) => {
+      const gap = width - lenLeft - visibleLen(seg);
+      return gap >= (left ? 2 : 0) ? left + ' '.repeat(Math.max(0, gap)) + seg : null;
+    };
+
+    const out = placeRight(full) || placeRight(compact) ||
+      // Too narrow even for the compact segment flush-right: append it after the
+      // wrapped line with a single gap and let the terminal clip if it must.
+      (left ? `${left} ${compact}` : compact);
+    process.stdout.write(out);
   }
 }
