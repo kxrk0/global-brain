@@ -61,6 +61,7 @@ function updateNotice() {
     try {
       const files = TX.listTranscripts(projectsDir);
       const budget = config.backfillMaxFilesPerRun || 80;
+      const excluded = new Set(config.excludeProjects || []);
       for (const f of files) {
         if (txFiles >= budget) break;
         const sid = path.basename(f.path, '.jsonl');
@@ -68,10 +69,19 @@ function updateNotice() {
         const seenM = parseFloat(D.getMeta(db, 'txmtime:' + sid, '0')) || 0;
         if (f.mtime && Math.abs(f.mtime - seenM) < 1) continue;
         const res = TX.extractFile(f.path);
-        D.setMeta(db, 'txmtime:' + sid, f.mtime || Date.now());
         txFiles++;
-        if ((config.excludeProjects || []).includes(res.project)) continue;
-        for (const e of res.entries) { Object.assign(e, scoreEntry(e, config)); D.upsertEntry(db, e); txEntries++; }
+        if (!excluded.has(res.project)) {
+          // Upsert this file's entries in one transaction (atomic + fast). Advance
+          // the mtime checkpoint only AFTER a successful commit — so a mid-file
+          // failure retries the whole file next run instead of marking it "seen"
+          // with its entries lost.
+          db.exec('BEGIN');
+          try {
+            for (const e of res.entries) { Object.assign(e, scoreEntry(e, config)); D.upsertEntry(db, e); txEntries++; }
+            db.exec('COMMIT');
+          } catch (err) { try { db.exec('ROLLBACK'); } catch {} throw err; }
+        }
+        D.setMeta(db, 'txmtime:' + sid, f.mtime || Date.now());
       }
     } catch (e) { log.push('transcript: ' + e.message); }
 
@@ -104,7 +114,14 @@ function updateNotice() {
     done(summary, notice);
   } catch (e) {
     try { if (db) db.close(); } catch {}
-    // last-resort: never block the harness
+    // Log the fatal so a silently-broken sync is diagnosable (the #1 "why didn't
+    // it sync?" pain) — but still never block the harness.
+    try {
+      const os = require('os');
+      const base = path.join(process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude'), 'global-brain');
+      fs.appendFileSync(path.join(base, 'sync.log'),
+        new Date().toISOString() + ' FATAL ' + (e && e.stack ? e.stack.split('\n')[0] : String(e)) + '\n');
+    } catch {}
     if (REPORT) console.log('sync error: ' + (e && e.message));
     else process.stdout.write('{"continue":true,"suppressOutput":true}');
     process.exit(0);

@@ -54,3 +54,14 @@ This separation is the design: **automatic coarse capture + on-demand intelligen
 
 ## When the user asks "what do you know about X"
 Prefer the brain over guessing: run `global-brain query X`, then answer from the rows. If nothing matches, say so and offer `/global-brain sync` to refresh.
+
+## Troubleshooting — "why isn't my recent work in the brain?"
+The auto-sync is **incremental and lossy by design**; a few things to know before assuming it's broken:
+
+- **Cadence.** Sync runs on **SessionStart** (open/resume) and **Stop** (end of every turn). There is no SessionEnd sync — closing the terminal doesn't sync; the previous turn's Stop already did.
+- **Incremental skip.** Each transcript is re-read only when its file mtime changed (`txmtime:<id>` checkpoints in the `meta` table). The DB file is touched almost every run (checkpoints/`lastSync`) even when **no new rows** are added — so "DB modified just now" ≠ "new memory saved". Compare `MAX(created_at)` in `entries`, not the file mtime.
+- **Commits** are captured from the tool **output** line `[branch hash] subject` — this catches every commit method (`-m`, `-F`, heredoc, editor, amend) and never records a commit that failed to land. (Older versions parsed the command string and missed `-F`/editor commits.)
+- **Force a catch-up:** `global-brain sync --report` ingests immediately and prints `+N from M transcripts`. If `N` is 0 but you expected new work, the content may be summarized/compacted out of the active transcript — start a fresh session (SessionStart does a full pass) or `remember` it explicitly.
+- **Fatal errors** are appended to `~/.claude/global-brain/sync.log` (the hook still exits 0 and never blocks Claude). Read that file first when diagnosing a stuck sync.
+
+The brain is the **lossy, automatic** layer. For anything that must not be lost, distil it with `global-brain remember` (model-in-the-loop) — that's the durable path.
