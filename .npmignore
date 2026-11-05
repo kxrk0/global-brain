@@ -1,1 +1,9 @@
+# Repo-only material; package.json "files" already whitelists what ships.
+agensi/
+dist/
+docs/
+scripts/
+test/
+.vellum/
+*.bak
 update-check.json

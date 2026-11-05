@@ -10,6 +10,7 @@ const U = require('../lib/update-check');
 
 const VERBS = {
   init: '../install/init.js',
+  uninstall: '../install/uninstall.js',
   doctor: 'doctor.js',
   sync: 'sync.js',
   query: 'query.js',
@@ -18,7 +19,7 @@ const VERBS = {
   stats: 'stats.js',
 };
 
-// Verbs that touch the SQLite brain. `init`/`doctor` run regardless so they can
+// Verbs that touch the SQLite brain. `init`/`doctor`/`uninstall` run regardless so they can
 // repair or report a broken runtime.
 const NEEDS_SQLITE = new Set(['sync', 'query', 'remember', 'forget', 'stats']);
 
@@ -26,8 +27,10 @@ function usage() {
   console.log(`global-brain — cross-project persistent memory for Claude Code
 
 Usage:
-  global-brain init                 wire the brain into ~/.claude (hooks + skill + digest import)
-  global-brain doctor               health-check the install (runtime, hooks, import, db)
+  global-brain init                 wire the brain into ~/.claude (hooks, status line, skill, import)
+  global-brain uninstall            remove hooks, status line, CLAUDE.md import; keeps brain.db
+                                    [--purge deletes ~/.claude/global-brain too] [--dry-run]
+  global-brain doctor               health-check the install (runtime, hooks, status line, import, db)
   global-brain sync [--report]      ingest Claude Code transcripts, re-render the digest
   global-brain stats                show entry counts per project/type
   global-brain query <terms>        search the brain   [--project P] [--limit N]
@@ -72,8 +75,9 @@ const script = path.resolve(__dirname, target);
 const r = spawnSync(process.execPath, [script, ...rest], { stdio: 'inherit' });
 const status = r.status == null ? 1 : r.status;
 
-// doctor surfaces its own update line; skip the duplicate here.
-if (verb !== 'doctor') {
+// doctor surfaces its own update line; uninstall must not re-create the cache
+// file (or the folder, after --purge) it just removed.
+if (verb !== 'doctor' && verb !== 'uninstall') {
   try {
     U.refresh();
     const n = U.notice(require('../package.json').version);

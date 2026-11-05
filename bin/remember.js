@@ -24,7 +24,7 @@ for (let i = 0; i < args.length; i++) {
 }
 
 if (!o.title && rest.length) { o.title = rest.join(' '); }
-if (!o.title) { console.log('kullanım: remember.js [--project P --type T --title "..." --body "..." --global --pin] | "serbest metin"'); process.exit(1); }
+if (!o.title) { console.log('usage: global-brain remember [--project P --type T --title "..." --body "..." --global --pin] | "free text"'); process.exit(1); }
 
 // Quick free-text form defaults to a global pinned fact.
 if (!o.project) { o.project = 'global'; o.is_global = 1; o.pinned = 1; }
@@ -38,9 +38,10 @@ let db;
 try {
   db = D.open();
   D.upsertEntry(db, o);
-  const row = db.prepare('SELECT id FROM entries WHERE uid=?').get(o.uid);
+  const row = db.prepare('SELECT id, title FROM entries WHERE uid=?').get(o.uid);
+  if (row) o.title = row.title; // echo what was stored (secrets already masked)
   // re-render so the digest reflects it immediately
   try { const R = require('../lib/render'); const cfg = D.loadConfig(); R.writeDigest(db, cfg, D.paths().digest); } catch {}
-  console.log(`✓ kaydedildi #${row ? row.id : '?'} [${o.project} · ${o.type}${o.is_global ? ' · 🌐' : ''}${o.pinned ? ' · 📌' : ''}] ${o.title}`);
+  console.log(`✓ saved #${row ? row.id : '?'} [${o.project} · ${o.type}${o.is_global ? ' · 🌐' : ''}${o.pinned ? ' · 📌' : ''}] ${o.title}`);
 } catch (e) { console.log('remember error: ' + (e && e.message)); }
 finally { try { if (db) db.close(); } catch {} }

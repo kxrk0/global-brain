@@ -1,0 +1,5 @@
+# Keep LF in the working copy: npm packs these files as-is, and a CRLF shebang
+# ("node" followed by a carriage return) breaks the CLI on Linux/macOS.
+* text=auto eol=lf
+*.zip binary
+*.db binary

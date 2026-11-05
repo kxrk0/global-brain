@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 'use strict';
 // `global-brain doctor` — health check for the installed brain. Verifies the
-// runtime, that the engine + skill are in place, that the SessionStart/Stop hooks
-// and digest @-import are wired, and that the database is readable. Prints a
+// runtime, that the engine + skill are in place, that the SessionStart/Stop hooks,
+// status line and digest @-import are wired, and that the database is readable. Prints a
 // checklist; exits 1 only on a hard failure (so it's CI-friendly).
 
 const fs = require('fs');
@@ -62,12 +62,34 @@ if (!settings) {
     ss && st ? 'auto-sync wired' : `missing ${[!ss && 'SessionStart', !st && 'Stop'].filter(Boolean).join(' + ')} — run \`global-brain init\``);
 }
 
-// 5. digest import
+// 5. status line (carries the "update available" segment; wraps the user's own)
+if (settings) {
+  const sl = settings.statusLine;
+  const ours = sl && typeof sl.command === 'string' &&
+    sl.command.includes('global-brain') && sl.command.includes('statusline.js');
+  if (ours) {
+    const m = sl.command.match(/"([^"]*statusline\.js)"/) || sl.command.match(/(\S*statusline\.js)/);
+    const script = m ? m[1] : null;
+    let wrap = '';
+    try { wrap = (JSON.parse(fs.readFileSync(path.join(BASE, 'config.json'), 'utf8')).statusLineWrap || '').trim(); } catch {}
+    if (script && !fs.existsSync(script)) {
+      line('fail', 'Status line (settings.json)', `points at missing ${script} — run \`global-brain init\``);
+    } else {
+      line('pass', 'Status line (settings.json)', wrap ? `update segment wired, wrapping: ${wrap}` : 'update segment wired');
+    }
+  } else if (sl) {
+    line('warn', 'Status line (settings.json)', 'another status line is set — run `global-brain init` to wrap it with the update segment');
+  } else {
+    line('warn', 'Status line (settings.json)', 'not wired — update notice won\'t show in the status row; run `global-brain init`');
+  }
+}
+
+// 6. digest import
 let mdHas = false;
 try { mdHas = fs.readFileSync(CLAUDE_MD, 'utf8').includes('@global-brain.md'); } catch {}
 line(mdHas ? 'pass' : 'warn', 'Digest import (CLAUDE.md)', mdHas ? '@global-brain.md present' : 'not imported — digest won\'t load into sessions');
 
-// 6. database
+// 7. database
 if (sq.ok) {
   try {
     const D = require('../lib/db');

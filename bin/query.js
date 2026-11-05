@@ -17,8 +17,8 @@ let db;
 try {
   db = D.open();
   const rows = D.search(db, q, { project, limit });
-  if (!rows.length) { console.log(`(eşleşme yok: "${q}")`); process.exit(0); }
-  console.log(`${rows.length} sonuç — "${q}"${project ? ' @' + project : ''}:\n`);
+  if (!rows.length) { console.log(`(no matches: "${q}")`); process.exit(0); }
+  console.log(`${rows.length} result${rows.length === 1 ? '' : 's'} — "${q}"${project ? ' @' + project : ''}:\n`);
   for (const r of rows) {
     const day = r.created_epoch ? new Date(r.created_epoch).toISOString().slice(0, 10) : '?';
     const flags = (r.pinned ? '📌' : '') + (r.is_global ? '🌐' : '');

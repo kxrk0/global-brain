@@ -1,6 +1,6 @@
 {
   "name": "@kxrk0/global-brain",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Cross-project persistent memory (\"global brain\") for Claude Code — a local SQLite brain that auto-ingests transcripts and renders a bounded digest loaded into every session.",
   "keywords": [
     "claude-code",
@@ -28,7 +28,11 @@
   },
   "scripts": {
     "postinstall": "node install/postinstall.js",
-    "test": "node test/update-check.test.js"
+    "test": "node test/run.js",
+    "version:sync": "node scripts/sync-version.js",
+    "version": "node scripts/sync-version.js && git add agensi/SKILL.md",
+    "agensi:zip": "node scripts/build-agensi-zip.js",
+    "release:check": "node scripts/release-check.js"
   },
   "files": [
     "bin/",
@@ -40,7 +44,7 @@
     "LICENSE"
   ],
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=22.13.0"
   },
   "dependencies": {},
   "publishConfig": {

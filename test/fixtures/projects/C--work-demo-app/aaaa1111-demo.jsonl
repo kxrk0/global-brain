@@ -1,0 +1,14 @@
+{"type":"user","timestamp":"2026-10-01T09:00:00.000Z","cwd":"C:\\work\\demo-app","isMeta":true,"message":{"role":"user","content":"Caveat: meta message that must be ignored"}}
+{"type":"user","timestamp":"2026-10-01T09:00:05.000Z","cwd":"C:\\work\\demo-app","message":{"role":"user","content":"<command-name>/clear</command-name>"}}
+{"type":"user","timestamp":"2026-10-01T09:01:00.000Z","cwd":"C:\\work\\demo-app","message":{"role":"user","content":"add retry with exponential backoff to the payment client"}}
+{"type":"ai-title","aiTitle":"Payment client retry with backoff","timestamp":"2026-10-01T09:01:02.000Z"}
+{"type":"assistant","timestamp":"2026-10-01T09:02:00.000Z","cwd":"C:\\work\\demo-app","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Edit","input":{"file_path":"C:\\work\\demo-app\\src\\payment.ts","old_string":"a","new_string":"b"}},{"type":"tool_use","id":"t2","name":"Write","input":{"file_path":"C:\\work\\demo-app\\src\\retry.ts","content":"x"}}]}}
+{"type":"assistant","timestamp":"2026-10-01T09:03:00.000Z","cwd":"C:\\work\\demo-app","message":{"role":"assistant","content":[{"type":"tool_use","id":"t3","name":"Bash","input":{"command":"git commit -m \"feat: retry payment calls with backoff\""}}]}}
+{"type":"user","timestamp":"2026-10-01T09:03:01.000Z","cwd":"C:\\work\\demo-app","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t3","content":"[main 1a2b3c4] feat: retry payment calls with backoff\n 2 files changed, 40 insertions(+)"}]}}
+{"type":"assistant","timestamp":"2026-10-01T09:04:00.000Z","cwd":"C:\\work\\demo-app","message":{"role":"assistant","content":[{"type":"tool_use","id":"t4","name":"Bash","input":{"command":"git commit -m \"fix: this commit fails\""}}]}}
+{"type":"user","timestamp":"2026-10-01T09:04:01.000Z","cwd":"C:\\work\\demo-app","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t4","content":"nothing to commit, working tree clean"}]}}
+{"type":"user","timestamp":"2026-10-01T09:05:00.000Z","cwd":"C:\\work\\demo-app","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t5","content":[{"type":"text","text":"commit 1a2b3c4\n[main 1a2b3c4] feat: retry payment calls with backoff"}]}]}}
+{"type":"user","timestamp":"2026-10-01T09:06:00.000Z","cwd":"C:\\work\\demo-app","message":{"role":"user","content":"never retry non-idempotent POST requests, always use an idempotency key"}}
+{"type":"ai-title","aiTitle":"Idempotency keys for POST retries","timestamp":"2026-10-01T09:06:02.000Z"}
+{"type":"user","timestamp":"2026-10-01T09:07:00.000Z","cwd":"C:\\work\\demo-app","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t6","content":"[feature/x 9f8e7d6] refactor: split payment client\n"}]}}
+not json at all, a corrupted line the parser must skip

@@ -85,6 +85,12 @@ function updateNotice() {
       }
     } catch (e) { log.push('transcript: ' + e.message); }
 
+    // ---- 1b. one-time secret scrub of rows stored by older versions ----
+    try {
+      const scrubbed = require('../lib/redact').scrubRows(db);
+      if (scrubbed) log.push('redacted ' + scrubbed);
+    } catch (e) { log.push('redact: ' + e.message); }
+
     // ---- 2. prune stale low-value chatter (keeps the brain lean long-term) ----
     try {
       const days = config.pruneAfterDays || 120;

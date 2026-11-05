@@ -19,6 +19,7 @@ Prefer the `global-brain` CLI (installed on PATH):
 - `global-brain query <terms> [--project P] [--limit N]` — search
 - `global-brain remember ...` — add a fact (see below)
 - `global-brain forget <id>` — delete an entry
+- `global-brain uninstall` — only when the user asks to remove global-brain: undoes `init` (hooks, status line, CLAUDE.md import, skill, engine) and keeps `brain.db`. `--dry-run` previews; `--purge` also deletes the saved memory permanently, so use it only on an explicit request. Then `npm uninstall -g @kxrk0/global-brain`.
 
 If the CLI isn't on PATH, the engine also lives at `~/.claude/global-brain/` — run `node "~/.claude/global-brain/bin/<script>.js"` directly.
 
@@ -50,6 +51,7 @@ This separation is the design: **automatic coarse capture + on-demand intelligen
 - Ingestion is idempotent: re-running never duplicates (uid dedup; session digests upsert in place).
 - The digest is bounded by `config.json` (`maxTotalEntries`, `maxPerProject`, `tokenBudget`) so it can't bloat context.
 - Internal observer/agent-memory transcripts are excluded; the brain only holds real project work.
+- Values that look like API keys, tokens or passwords are stored and rendered as `[REDACTED]`. Never `remember` a secret on purpose.
 - Edits to `~/.claude/global-brain.md` are overwritten by sync — change `config.json` or use `remember`/`forget` instead.
 
 ## When the user asks "what do you know about X"

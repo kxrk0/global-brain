@@ -23,3 +23,6 @@ Thumbs.db
 
 # update-check cache (runtime)
 update-check.json
+
+# build output (Agensi ZIP)
+dist/

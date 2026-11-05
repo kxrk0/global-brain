@@ -114,6 +114,9 @@ function ensureStatusLine() {
   let cfg = {};
   try { cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8')); } catch {}
   cfg.statusLineWrap = wrap;
+  // The whole previous object (padding etc. included, or null when there was
+  // none) so `global-brain uninstall` can put it back exactly.
+  cfg.statusLineOriginal = cur === undefined ? null : cur;
   writeAtomic(cfgPath, JSON.stringify(cfg, null, 2) + '\n');
 
   settings.statusLine = { type: 'command', command: `node "${STATUSLINE_PATH}"` };
@@ -135,9 +138,26 @@ function initialSync() {
   if (r.status !== 0) log('initial sync skipped (non-fatal)');
 }
 
+// Remember, once, whether init is the one creating settings.json / CLAUDE.md, so
+// `global-brain uninstall` can delete them again instead of leaving empty files.
+function recordInstallState(pre) {
+  const cfgPath = path.join(BASE, 'config.json');
+  let cfg = {};
+  try { cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8')); } catch { return; }
+  if (cfg.installState) return;
+  cfg.installState = { settingsCreated: !pre.settings, claudeMdCreated: !pre.claudeMd, skillsDirCreated: !pre.skillsDir };
+  writeAtomic(cfgPath, JSON.stringify(cfg, null, 2) + '\n');
+}
+
 function main() {
   log(`config dir: ${CLAUDE_DIR}`);
+  const pre = {
+    settings: fs.existsSync(SETTINGS),
+    claudeMd: fs.existsSync(CLAUDE_MD),
+    skillsDir: fs.existsSync(path.dirname(SKILL_DIR)),
+  };
   ensureEngine();
+  recordInstallState(pre);
   ensureSkill();
   ensureHooks();
   ensureStatusLine();
