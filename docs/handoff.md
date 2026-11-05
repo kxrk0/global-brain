@@ -2,8 +2,9 @@
 
 ## Where it stands (2026-11-05)
 
-Branch `release/0.6.0` (cut from `main` = published 0.5.0) holds 0.6.0, committed, **not pushed,
-not published, Agensi not updated** — the user does those by hand.
+0.6.0 is released: npm `latest` = 0.6.0, `main` and tag `v0.6.0` pushed (commit c7a2b75).
+Agensi listing text updated live on 2026-11-05 and the 0.6.0 ZIP resubmitted (listing v1.1,
+waiting for Agensi's security scan and review; v1.0 stays live until then).
 
 0.6.0 adds:
 - English CLI output and digest header (`bin/query|remember|stats|forget.js`, `lib/render.js`,
@@ -34,8 +35,7 @@ not published, Agensi not updated** — the user does those by hand.
   push; the pre-rewrite state is kept locally as `backup/release-0.6.0-pre-rewrite` (delete
   once 0.6.0 is out).
 - Untracked junk in the working tree: `nul`, `.vellum/` (from that tool). Not touched.
-- Agensi listing text still says the CLI is Turkish and lists manual uninstall steps — the user
-  updates it by hand.
+- Agensi v1.1 review pending. If it is rejected, the reason shows on the Agensi dashboard.
 
 ## How to resume
 
